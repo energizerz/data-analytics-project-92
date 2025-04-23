@@ -1,9 +1,12 @@
+--------------------------------------------- STEP 4 ----------------------------------------
 -- Подсчитывает общее коливество покупателей из таблицы
 select
 	COUNT(customer_id) as customers_count
 from customers;
 
 
+
+--------------------------------------------- STEP 5 ----------------------------------------
 -- Подготовить отчет о десяти лучших продавцах. Сортировка по суммарной выручке по убыванию.
 select
 	e.first_name || ' ' || e.last_name  as seller,
@@ -64,4 +67,71 @@ select
 	income
 from my_table
 order by number_day, 1;
+
+
+
+--------------------------------------------- STEP 6 ----------------------------------------
+-- Сформировать отчет, в котором разделить покупателей на 3 возрастные группы.
+-- После чего посчитать количество покупателей в каждой возрастной группе.
+select
+	case
+		when age between 16 and 25 then '16-25'
+		when age between 26 and 40 then '26-40'
+		else '40+'
+	end as age_category,
+	count(customer_id) as age_count	
+from customers
+group by age_category
+order by 2;
+
+
+--Сформировать отчет по количеству уникальных покупателей и выручке, которую они принесли
+-- в каждом месяце. Данные сгруппированы по датеЮ представленной в виде ГОД-месяц.
+--итоговая таблица отсортирована и выведена по дате возрастания.
+with mytab as
+	(select
+		extract(year from s.sale_date) as years,
+		extract(month from s.sale_date) as months,
+		count(distinct s.customer_id) as total_customers,
+		floor(sum(s.quantity * p.price)) as income,
+		row_number() over (order by extract(month from s.sale_date)) as rn
+	from sales s
+	inner join products p
+	on s.product_id = p.product_id
+	group by 1, 2
+)
+select
+	years || '-' || months as selling_month,
+	total_customers,
+	income
+from mytab
+order by rn;
+
+
+--Сформировать отчет о покупателях, у которых их самая первая покупка была совершена в
+-- ходе проведения акции, то есть цена товара была равна 0.
+-- В итоговой таблицы выведены данные этих покупателей, дата совершения покупки, а так же 
+-- данные продавца, который отпустил товар. Сортировка осуществляется по айди покупателя.
+with mytable as
+	(select
+		*,
+		row_number() over(partition by s.customer_id order by s.customer_id, s.sale_date) as rn
+	from sales s
+	inner join products p
+	on s.product_id = p.product_id
+)
+select
+	c.first_name || ' ' || c.last_name as customer,
+	mt.sale_date,
+	e.first_name || ' ' || e.last_name as seller
+from mytable mt
+inner join customers c
+on c.customer_id = mt.customer_id
+inner join employees e 
+on e.employee_id = mt.sales_person_id
+where rn = 1 and price = 0
+order by mt.customer_id ASC;
+
+
+
 	
