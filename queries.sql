@@ -52,7 +52,7 @@ with my_table as
 	(select
 		e.first_name || ' ' || e.last_name as seller,
 		extract(isodow from s.sale_date) as number_day,
-		to_char((s.sale_date), 'fmDay') as day_of_week,
+		lower(to_char((s.sale_date), 'fmDay')) as day_of_week,
 		floor(sum(p.price * s.quantity)) as income
 	from sales s
 	inner join products p
@@ -91,10 +91,11 @@ order by 2;
 with mytab as
 	(select
 		extract(year from s.sale_date) as years,
-		extract(month from s.sale_date) as months,
+		--extract(month from s.sale_date) as months,
+		to_char(sale_date, 'MM') as months,
 		count(distinct s.customer_id) as total_customers,
-		floor(sum(s.quantity * p.price)) as income,
-		row_number() over (order by extract(month from s.sale_date)) as rn
+		floor(sum(s.quantity * p.price)) as income
+--		row_number() over (order by extract(month from s.sale_date)) as rn
 	from sales s
 	inner join products p
 	on s.product_id = p.product_id
@@ -104,8 +105,8 @@ select
 	years || '-' || months as selling_month,
 	total_customers,
 	income
-from mytab
-order by rn;
+from mytab;
+--order by rn;
 
 
 --Сформировать отчет о покупателях, у которых их самая первая покупка была совершена в
